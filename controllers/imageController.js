@@ -35,7 +35,9 @@ const path = require('path')
                 console.log(e);
                 return res.status(500).json({errorMessage : "Unable to Process"});
             }
+            console.log("going in try")
             try{
+                console.log("donw with processing");
                 imageService.processImages(requestId, results);
             }
             catch(e){
