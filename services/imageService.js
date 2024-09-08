@@ -37,7 +37,7 @@ const validateCSV = (data) => {
 };
 
 const downloadImage = async (url, outputPath) => {
-    
+    console.log("in download");
     const response = await axios({ url, responseType: 'stream' });
     return new Promise((resolve, reject) => {
         const writer = fs.createWriteStream(outputPath);
@@ -49,6 +49,7 @@ const downloadImage = async (url, outputPath) => {
 
 const compressImage = async (url, outputPath) => {
     try {
+        console.log("in compress");
         const tempInputPath = `./uploads/temp-image.jpeg`;
         
         await downloadImage(url, tempInputPath);
@@ -73,7 +74,7 @@ const processImages = async (requestId, productData) => {
     const outputData = [];
     for (const row of productData) {
         
-        
+        console.log("in process");
         const serialNumber = row[Object.keys(row)[0]];
         const productName = row[Object.keys(row)[1]];
         const inputUrls = row[Object.keys(row)[2]];
@@ -101,6 +102,7 @@ const processImages = async (requestId, productData) => {
     fs.writeFileSync(outFilePath, csv)
 
     const outputFile = await uploadFile(outFilePath, `output-files/${outFilePath}`, {contentType : "text/csv"});
+    console.log(outputFile);
     await Request.findOneAndUpdate(
         { requestId : `${requestId}` },
         { status: 'completed', outputFilePath: outputFile } //online upload
