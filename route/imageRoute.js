@@ -5,7 +5,9 @@ const statusController = require('../controllers/statusController');
 const upload = require('../services/multerServices')
 
 
-router.get('/');
+router.get('/', (req, res)=>{
+    res.send("You are in images");
+});
 
 router.post('/upload', upload.single('file'), imageController.uploadCSV);
 //router.post('/upload', imageController.uploadCSV);
