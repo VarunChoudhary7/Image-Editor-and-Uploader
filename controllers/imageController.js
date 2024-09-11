@@ -7,9 +7,8 @@ const path = require('path')
 
     const uploadCSV = (req, res) => {
 
-    const filePath = req.file.path; //multter file integeration
+    const filePath = req.file.path; 
     
-    //const filePath = '../Assignment/controllers/test.csv'; //multter file integeration
     const results = [];
     fs.createReadStream(filePath)
         .pipe(csv())
@@ -18,15 +17,14 @@ const path = require('path')
             let requestId = null;
             try{
                 const validationResult = imageService.validateCSV(results);
-            
-            
             if (!validationResult.isValid) {
                 return res.status(400).json({errorMessage : validationResult.errorMessage});
             }
             requestId = uuidv4();
             const url = await imageService.uploadFile(filePath, `input-files/${requestId}.csv`, { contentType : "text/csv"});
+            
             if(url == null){
-                return //satus code;
+                return res.status(500).json({errorMessage : "Some unexpected error occured while generating input URL"});
             }
             const request = new Request({ requestId, inputFilePath: url});
             await request.save();
@@ -35,9 +33,7 @@ const path = require('path')
                 console.log(e);
                 return res.status(500).json({errorMessage : "Unable to Process"});
             }
-            console.log("going in try")
             try{
-                console.log("donw with processing");
                 imageService.processImages(requestId, results);
             }
             catch(e){
@@ -49,8 +45,6 @@ const path = require('path')
             
         });
 };
-
-
 
 
 module.exports = {

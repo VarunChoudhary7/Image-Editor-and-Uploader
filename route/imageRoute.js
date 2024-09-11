@@ -10,7 +10,6 @@ router.get('/', (req, res)=>{
 });
 
 router.post('/upload', upload.single('file'), imageController.uploadCSV);
-//router.post('/upload', imageController.uploadCSV);
 
 router.get('/status/:requestId', statusController);
 

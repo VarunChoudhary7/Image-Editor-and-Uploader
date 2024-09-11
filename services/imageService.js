@@ -3,10 +3,10 @@ const axios = require('axios');
 const fs = require('fs');
 const triggerWebhook = require('../webhooks/webhook');
 const Request = require('../model/imageModel');
-const { initializeApp } = require("firebase/app");
-const { getStorage, ref, getDownloadURL, uploadBytes } = require("firebase/storage");
-const config = require("../config/firebaseconfig");
-
+const { initializeApp } = require('firebase/app');
+const { getStorage, ref, getDownloadURL, uploadBytes } = require('firebase/storage');
+const config = require('../config/firebaseconfig');
+const {validateSerialNumber, validateURL, validateProductName} = require('./validationServices');
 const { Parser } = require('json2csv');
 
 
@@ -25,9 +25,34 @@ const validateCSV = (data) => {
         colKeys = Object.keys(row);
         for(let j = 0; j<colKeys.length; j++){  //serial number validator, url validator, product name validator
             console.log(row[colKeys.at(j)]);
+            const serialNumber = row[colKeys[0]]; 
+            const productName = row[colKeys[1]];          
             
+            if (!validateSerialNumber(serialNumber)) {
+                return {
+                    isValid: false,
+                    errorMessage: `Invalid Serial Number: ${serialNumber}`
+                };
+            }
+    
+            if (!validateProductName(productName)) {
+                return {
+                    isValid: false,
+                    errorMessage: `Invalid Product Name: ${productName}`
+                };
+            }
         }
-    }
+    
+        // If everything is valid
+        return {
+            isValid: true,
+            errorMessage: ""
+        };
+    };
+    
+  
+        
+    
     return {
         isValid : true,
         errorMessage : ""
@@ -37,7 +62,6 @@ const validateCSV = (data) => {
 };
 
 const downloadImage = async (url, outputPath) => {
-    console.log("in download");
     const response = await axios({ url, responseType: 'stream' });
     return new Promise((resolve, reject) => {
         const writer = fs.createWriteStream(outputPath);
@@ -47,21 +71,13 @@ const downloadImage = async (url, outputPath) => {
     });
 };
 
-const compressImage = async (url, outputPath) => {
+const compressImage = async (url, outputPath, tempInputPath) => {
     try {
-        console.log("in compress");
-        const tempInputPath = `./uploads/temp-image.jpeg`;
-        
         await downloadImage(url, tempInputPath);
 
         await sharp(tempInputPath)
             .jpeg({ quality: 50 }) 
             .toFile(outputPath);
-
-        // fs.unlinkSync(tempInputPath);
-
-
-        
 
         return outputPath;
     } catch (error) {
@@ -78,18 +94,19 @@ const processImages = async (requestId, productData) => {
         const serialNumber = row[Object.keys(row)[0]];
         const productName = row[Object.keys(row)[1]];
         const inputUrls = row[Object.keys(row)[2]];
-
+        const tempInputPath = `./uploads/temp-${productName}.jpeg`;
         const urls = inputUrls.split(',');
+        console.log(urls);
 
         const outputUrls = await Promise.all(urls.map(async (url, index) => {   //check allSettled
-            const outputPath = `./services/output/processedImages/${productName}_${index}.jpg`;  //online storage
-            await compressImage(url, outputPath); 
+            const outputPath = `./services/output/processedImages/${productName}_${index}.jpg`;  
+            await compressImage(url, outputPath, tempInputPath); 
             const onlineOutput = `output-images/${productName}_${index}.jpg`;
             const outputUrl = uploadFile(outputPath, onlineOutput, {contentType : "image/jpeg"});
             return outputUrl;
         }));
-        
 
+        //fs.unlinkSync(tempInputPath);
         const finalUrls = outputUrls.join(', ');   
         
         
@@ -102,7 +119,7 @@ const processImages = async (requestId, productData) => {
     fs.writeFileSync(outFilePath, csv)
 
     const outputFile = await uploadFile(outFilePath, `output-files/${outFilePath}`, {contentType : "text/csv"});
-    console.log(outputFile);
+    
     await Request.findOneAndUpdate(
         { requestId : `${requestId}` },
         { status: 'completed', outputFilePath: outputFile } //online upload

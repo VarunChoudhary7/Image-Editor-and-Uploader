@@ -6,8 +6,6 @@ const Request = require('../model/imageModel');
 router.get('/status/:requestId', async (req, res) => {
 
     try {
-        // Find the request in the database using the requestId
-
         const { requestId } = req.params; 
         
         const request = await Request.findOne({requestId : requestId });
@@ -28,8 +26,7 @@ router.get('/status/:requestId', async (req, res) => {
     } catch (error) {
         console.error('Error fetching request status:', error);
         res.status(500).json({
-            message: 'An error occurred while fetching the request status',
-            error: error.message
+            message: 'An error occurred while fetching the request status'
         });
     }
 });
